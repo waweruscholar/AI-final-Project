@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Calmly</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: #fff;
+    }
+    .box {
+      background: rgba(0,0,0,0.6);
+      padding: 2em;
+      border-radius: 10px;
+      width: 300px;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 5px;
+      background: #28a745;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #1e7e34; }
+    a { color: #90caf9; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Login to Calmly</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <p>No account? <a href="register.html">Register</a></p>
+  </div>
+
+  <script>
+    function login(){
+      const user = document.getElementById('username').value.trim();
+      const pass = document.getElementById('password').value.trim();
+      const users = JSON.parse(localStorage.getItem('calmlyUsers')||'[]');
+
+      const match = users.find(u => u.username===user && u.password===pass);
+      if(match){
+        localStorage.setItem('currentUser', user);
+        window.location.href = "index.html";
+      } else {
+        alert("Invalid username or password!");
+      }
+    }
+  </script>
+</body>
+</html>

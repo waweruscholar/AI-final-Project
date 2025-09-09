@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calmly — AI Stress Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      transition: background 0.5s ease, color 0.5s ease;
+    }
+
+    /* Themes */
+    body.dark {
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #f1f1f1;
+    }
+    body.light {
+      background: linear-gradient(135deg, #dce35b, #45b649);
+      color: #222;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: rgba(0,0,0,0.6);
+      border-right: 1px solid #444;
+      padding: 1em;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(6px);
+      color: inherit;
+      transform: translateX(-100%);
+      animation: slideIn 0.8s forwards;
+    }
+    @keyframes slideIn {
+      to { transform: translateX(0); }
+    }
+
+    .sidebar h2 { margin-top: 0; }
+    .sidebar button {
+      margin: 4px 0;
+      padding: 8px;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .sidebar button:hover { background: #0056b3; }
+
+    .stress-meter { margin: 1em 0; }
+    .stress-bar {
+      width: 100%;
+      height: 20px;
+      background: #333;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .stress-fill {
+      height: 100%;
+      width: 0%;
+      background: green;
+      transition: width 0.4s, background 0.4s;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .chat {
+      flex: 1;
+      padding: 1em;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+    }
+    .message {
+      max-width: 70%;
+      padding: .6em .9em;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.4;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeIn 0.4s forwards;
+    }
+    .user {
+      background: #90caf9;
+      align-self: flex-end;
+      border-bottom-right-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      color: #111;
+    }
+    .bot {
+      background: #f48fb1;
+      align-self: flex-start;
+      border-bottom-left-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      color: #111;
+    }
+    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+    /* Typing indicator */
+    .typing {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      background: #f48fb1;
+      align-self: flex-start;
+      border-radius: 18px;
+      padding: .6em .9em;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #333;
+      border-radius: 50%;
+      animation: blink 1.4s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.3; }
+      40% { opacity: 1; }
+    }
+
+    .input {
+      display: flex;
+      padding: .5em;
+      border-top: 1px solid #444;
+    }
+    .input input {
+      flex: 1;
+      padding: .5em;
+      border: 1px solid #666;
+      border-radius: 5px;
+      background: #222;
+      color: #f1f1f1;
+    }
+    .input button {
+      margin-left: .5em;
+      padding: .5em 1em;
+      border: none;
+      background: #28a745;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .input button:hover { background: #1e7e34; }
+
+    .breathing {
+      margin-top: auto;
+      text-align: center;
+      padding: 1em;
+    }
+    .breathing h3 { margin: .5em 0; }
+    .circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: #90caf9;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      transition: transform 4s ease-in-out, background 4s ease-in-out, box-shadow 4s ease-in-out;
+      color: #111;
+      box-shadow: 0 0 10px rgba(144,202,249,0.6);
+    }
+
+    .chips { margin: .5em 0; padding: 0 .5em; }
+    .chip {
+      display: inline-block;
+      margin: 2px;
+      padding: 5px 10px;
+      background: #555;
+      border-radius: 15px;
+      cursor: pointer;
+      color: #fff;
+    }
+    .chip:hover { background: #777; }
+  </style>
+</head>
+<body class="dark">
+  <div class="sidebar">
+    <h2>Calmly</h2>
+    <div class="stress-meter">
+      <strong>Stress Level:</strong>
+      <div class="stress-bar"><div class="stress-fill" id="stressFill"></div></div>
+      <span id="stressLabel">Low</span>
+    </div>
+    <button onclick="exportLogs()">Export Logs</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    <button onclick="eraseAll()">Erase All</button>
+    <button onclick="toggleTheme()">🌙/🌿 Theme</button>
+    <button onclick="toggleSound()">🎶 Sound</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+  <div class="main">
+    <div class="chat" id="chat"></div>
+    <div class="chips">
+      <span class="chip" onclick="quickSend('I feel overwhelmed with work')">Overwhelmed</span>
+      <span class="chip" onclick="quickSend('I am not anxious anymore but still tense')">Not anxious</span>
+      <span class="chip" onclick="quickSend('Give me a quick 5-minute reset')">5-min reset</span>
+    </div>
+    <div class="input">
+      <input type="text" id="userInput" placeholder="Type how you feel..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+    <div class="breathing">
+      <h3>Breathing Coach</h3>
+      <div class="circle" id="circle">Start</div>
+      <button onclick="startBreathing()">Start</button>
+      <button onclick="stopBreathing()">Stop</button>
+    </div>
+  </div>
+
+  <!-- Ocean waves audio -->
+  <audio id="bgAudio" loop>
+    <source src="https://cdn.pixabay.com/audio/2021/08/09/audio_94f1cc4e6f.mp3" type="audio/mpeg">
+  </audio>
+
+<script>
+    // Check login
+if(!localStorage.getItem('currentUser')){
+  window.location.href = "login.html";
+}
+function logout(){
+  localStorage.removeItem('currentUser');
+  window.location.href = "login.html";
+}
+const chat = document.getElementById('chat');
+const userInput = document.getElementById('userInput');
+const stressFill = document.getElementById('stressFill');
+const stressLabel = document.getElementById('stressLabel');
+const bgAudio = document.getElementById('bgAudio');
+let logs = JSON.parse(localStorage.getItem('calmlyLogs')||'[]');
+let breathingInterval;
+
+// Append messages
+function appendMessage(text, sender){
+  const div = document.createElement('div');
+  div.className = `message ${sender}`;
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// Typing indicator
+function showTyping(){
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'typing';
+  typingDiv.id = 'typingIndicator';
+  typingDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  chat.appendChild(typingDiv);
+  chat.scrollTop = chat.scrollHeight;
+}
+function hideTyping(){
+  const typingDiv = document.getElementById('typingIndicator');
+  if(typingDiv) typingDiv.remove();
+}
+
+// Sending messages
+function sendMessage(){
+  const text = userInput.value.trim();
+  if(!text) return;
+  appendMessage(text,'user');
+  logs.push({role:'user', text});
+  localStorage.setItem('calmlyLogs', JSON.stringify(logs));
+  userInput.value = '';
+  showTyping();
+  setTimeout(()=>respond(text),1200);
+}
+function quickSend(text){
+  userInput.value = text;
+  sendMessage();
+}
+
+// Stress analysis
+function analyzeStress(text){
+  let score=0;
+  const t=text.toLowerCase();
+  const lexicon={
+    high:{words:['overwhelmed','panic','panicking','can’t cope','breaking down'],weight:40},
+    medium:{words:['anxious','worried','stressed','tense','nervous'],weight:20},
+    low:{words:['tired','busy','pressured','drained'],weight:10},
+    boosters:{words:['very','really','extremely','super'],weight:10},
+    negators:['not','hardly','barely']
+  };
+  function addHits(words,weight){words.forEach(w=>{if(t.includes(w)) score+=weight;});}
+  addHits(lexicon.high.words,lexicon.high.weight);
+  addHits(lexicon.medium.words,lexicon.medium.weight);
+  addHits(lexicon.low.words,lexicon.low.weight);
+  addHits(lexicon.boosters.words,lexicon.boosters.weight);
+
+  lexicon.negators.forEach(neg => {
+    const rx = new RegExp(neg + ' (anxious|worried|tense|stressed|panic|panicking|overwhelmed)', 'g');
+    if (rx.test(t)) score -= 20;
+  });
+
+  if(score<0) score=0; if(score>100) score=100;
+  let level='Low'; let color='green';
+  if(score>=60){level='High';color='red';}
+  else if(score>=30){level='Medium';color='orange';}
+  stressFill.style.width=score+'%';
+  stressFill.style.background=color;
+  stressLabel.innerText=level;
+  return {score,level};
+}
+
+// Bot response
+let lastReply = "";
+
+function respond(text){
+  hideTyping();
+  const {level}=analyzeStress(text);
+
+  const responses = {
+    High: [
+      "That sounds overwhelming. Try grounding: 5 things you see, 4 touch, 3 hear, 2 smell, 1 taste.",
+      "It must feel intense. Let's try a slow deep breath together.",
+      "You’re going through a lot. Pausing with a sip of water might help reset."
+    ],
+    Medium: [
+      "Stress can sneak up. Maybe a quick walk would clear your mind.",
+      "I get that—it’s common to feel this way. Try a few deep breaths.",
+      "You’re handling it well. A one-minute stretch might refresh you."
+    ],
+    Low: [
+      "Thanks for sharing. A glass of water or stretch can recharge you.",
+      "Even a few quiet moments help reset your focus.",
+      "Looking out the window or stepping outside can lift your energy."
+    ]
+  };
+
+  // Choose a reply without repeating last one
+  let pool = responses[level];
+  let reply;
+  do {
+    reply = pool[Math.floor(Math.random()*pool.length)];
+  } while (reply === lastReply && pool.length > 1);
+  lastReply = reply;
+
+  appendMessage(reply,'bot');
+  logs.push({role:'bot', text:reply});
+  localStorage.setItem('calmlyLogs', JSON.stringify(logs));
+}
+
+
+// Logs
+function exportLogs(){
+  const blob=new Blob([JSON.stringify(logs,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='calmly_logs.json';
+  a.click();
+}
+function clearLogs(){logs=[];chat.innerHTML='';localStorage.setItem('calmlyLogs','[]');}
+function eraseAll(){localStorage.clear();logs=[];chat.innerHTML='';}
+
+// Breathing coach
+function startBreathing(){
+  const circle=document.getElementById('circle');
+  let state=0;
+  function cycle(){
+    if(state===0){
+      circle.innerText='Inhale';
+      circle.style.transform='scale(1.3)';
+      circle.style.background='#90caf9';
+      circle.style.boxShadow='0 0 25px rgba(144,202,249,0.9)';
+    }
+    else if(state===1){
+      circle.innerText='Hold';
+      circle.style.background='#ce93d8';
+      circle.style.boxShadow='0 0 25px rgba(206,147,216,0.9)';
+    }
+    else{
+      circle.innerText='Exhale';
+      circle.style.transform='scale(1.0)';
+      circle.style.background='#80cbc4';
+      circle.style.boxShadow='0 0 25px rgba(128,203,196,0.9)';
+    }
+    state=(state+1)%3;
+  }
+  cycle();
+  breathingInterval=setInterval(cycle,4000);
+}
+function stopBreathing(){
+  clearInterval(breathingInterval);
+  const circle=document.getElementById('circle');
+  circle.innerText='Start';
+  circle.style.transform='scale(1)';
+  circle.style.background='#90caf9';
+  circle.style.boxShadow='0 0 10px rgba(144,202,249,0.6)';
+}
+
+// Theme toggle
+function toggleTheme(){
+  const body=document.body;
+  if(body.classList.contains('dark')){
+    body.classList.remove('dark'); body.classList.add('light');
+    localStorage.setItem('theme','light');
+  } else {
+    body.classList.remove('light'); body.classList.add('dark');
+    localStorage.setItem('theme','dark');
+  }
+}
+(function loadTheme(){
+  const saved=localStorage.getItem('theme')||'dark';
+  document.body.classList.add(saved);
+})();
+
+// Sound toggle
+function toggleSound(){
+  if(bgAudio.paused){
+    bgAudio.play();
+    localStorage.setItem('sound','on');
+  } else {
+    bgAudio.pause();
+    localStorage.setItem('sound','off');
+  }
+}
+(function loadSound(){
+  if(localStorage.getItem('sound')==='on'){bgAudio.play();}
+})();
+
+// First message
+appendMessage("Hi! I'm Calmly. Tell me what’s on your mind...",'bot');
+</script>
+</body>
+</html>

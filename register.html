@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - Calmly</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #45b649, #dce35b);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: #222;
+    }
+    .box {
+      background: rgba(255,255,255,0.9);
+      padding: 2em;
+      border-radius: 10px;
+      width: 300px;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #666;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    a { color: #007bff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Create Account</h2>
+    <input type="text" id="username" placeholder="Choose username" />
+    <input type="password" id="password" placeholder="Choose password" />
+    <button onclick="register()">Register</button>
+    <p>Already have an account? <a href="login.html">Login</a></p>
+  </div>
+
+  <script>
+    function register(){
+      const user = document.getElementById('username').value.trim();
+      const pass = document.getElementById('password').value.trim();
+      if(!user || !pass){ alert("Fill all fields!"); return; }
+
+      let users = JSON.parse(localStorage.getItem('calmlyUsers')||'[]');
+      if(users.find(u=>u.username===user)){
+        alert("Username already exists!");
+        return;
+      }
+      users.push({username:user,password:pass});
+      localStorage.setItem('calmlyUsers', JSON.stringify(users));
+      alert("Registration successful! Please login.");
+      window.location.href="login.html";
+    }
+  </script>
+</body>
+</html>
